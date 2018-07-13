@@ -85,7 +85,7 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(12, 38);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(125, 19);
+            this.label1.Size = new System.Drawing.Size(155, 23);
             this.label1.TabIndex = 2;
             this.label1.Text = "RedGTR port name";
             // 
@@ -95,7 +95,7 @@
             this.gtrPortNameCbx.FormattingEnabled = true;
             this.gtrPortNameCbx.Location = new System.Drawing.Point(16, 64);
             this.gtrPortNameCbx.Name = "gtrPortNameCbx";
-            this.gtrPortNameCbx.Size = new System.Drawing.Size(183, 27);
+            this.gtrPortNameCbx.Size = new System.Drawing.Size(183, 31);
             this.gtrPortNameCbx.TabIndex = 3;
             this.gtrPortNameCbx.SelectedIndexChanged += new System.EventHandler(this.gtrPortNameCbx_SelectedIndexChanged);
             // 
@@ -104,7 +104,7 @@
             this.isGNSSEmulationChb.AutoSize = true;
             this.isGNSSEmulationChb.Location = new System.Drawing.Point(254, 12);
             this.isGNSSEmulationChb.Name = "isGNSSEmulationChb";
-            this.isGNSSEmulationChb.Size = new System.Drawing.Size(115, 23);
+            this.isGNSSEmulationChb.Size = new System.Drawing.Size(142, 27);
             this.isGNSSEmulationChb.TabIndex = 4;
             this.isGNSSEmulationChb.Text = "Emulate GNSS";
             this.isGNSSEmulationChb.UseVisualStyleBackColor = true;
@@ -117,7 +117,7 @@
             this.gnssEmuPortNameCbx.FormattingEnabled = true;
             this.gnssEmuPortNameCbx.Location = new System.Drawing.Point(254, 64);
             this.gnssEmuPortNameCbx.Name = "gnssEmuPortNameCbx";
-            this.gnssEmuPortNameCbx.Size = new System.Drawing.Size(183, 27);
+            this.gnssEmuPortNameCbx.Size = new System.Drawing.Size(183, 31);
             this.gnssEmuPortNameCbx.TabIndex = 6;
             this.gnssEmuPortNameCbx.SelectedIndexChanged += new System.EventHandler(this.gnssEmuPortNameCbx_SelectedIndexChanged);
             // 
@@ -127,7 +127,7 @@
             this.gnssEmulatorPortNameLbl.Enabled = false;
             this.gnssEmulatorPortNameLbl.Location = new System.Drawing.Point(250, 38);
             this.gnssEmulatorPortNameLbl.Name = "gnssEmulatorPortNameLbl";
-            this.gnssEmulatorPortNameLbl.Size = new System.Drawing.Size(170, 19);
+            this.gnssEmulatorPortNameLbl.Size = new System.Drawing.Size(212, 23);
             this.gnssEmulatorPortNameLbl.TabIndex = 5;
             this.gnssEmulatorPortNameLbl.Text = "GNSS emulator port name";
             // 
@@ -136,7 +136,7 @@
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(12, 121);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(108, 19);
+            this.label2.Size = new System.Drawing.Size(134, 23);
             this.label2.TabIndex = 7;
             this.label2.Text = "Max distance, m";
             // 
@@ -154,7 +154,7 @@
             0,
             0});
             this.maxDistanceEdit.Name = "maxDistanceEdit";
-            this.maxDistanceEdit.Size = new System.Drawing.Size(130, 26);
+            this.maxDistanceEdit.Size = new System.Drawing.Size(130, 30);
             this.maxDistanceEdit.TabIndex = 8;
             this.maxDistanceEdit.Value = new decimal(new int[] {
             500,
@@ -172,7 +172,7 @@
             0,
             0});
             this.salinityEdit.Name = "salinityEdit";
-            this.salinityEdit.Size = new System.Drawing.Size(130, 26);
+            this.salinityEdit.Size = new System.Drawing.Size(130, 30);
             this.salinityEdit.TabIndex = 10;
             // 
             // label3
@@ -180,7 +180,7 @@
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(250, 123);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(84, 19);
+            this.label3.Size = new System.Drawing.Size(104, 23);
             this.label3.TabIndex = 9;
             this.label3.Text = "Salinity, PSU";
             // 
@@ -188,7 +188,7 @@
             // 
             this.fifoSizeEdit.Location = new System.Drawing.Point(254, 217);
             this.fifoSizeEdit.Maximum = new decimal(new int[] {
-            256,
+            9999,
             0,
             0,
             0});
@@ -198,7 +198,7 @@
             0,
             0});
             this.fifoSizeEdit.Name = "fifoSizeEdit";
-            this.fifoSizeEdit.Size = new System.Drawing.Size(130, 26);
+            this.fifoSizeEdit.Size = new System.Drawing.Size(130, 30);
             this.fifoSizeEdit.TabIndex = 12;
             this.fifoSizeEdit.Value = new decimal(new int[] {
             100,
@@ -211,7 +211,7 @@
             this.label4.AutoSize = true;
             this.label4.Location = new System.Drawing.Point(250, 195);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(64, 19);
+            this.label4.Size = new System.Drawing.Size(77, 23);
             this.label4.TabIndex = 11;
             this.label4.Text = "FIFO size";
             // 
@@ -229,7 +229,7 @@
             0,
             0});
             this.baseSizeEdit.Name = "baseSizeEdit";
-            this.baseSizeEdit.Size = new System.Drawing.Size(130, 26);
+            this.baseSizeEdit.Size = new System.Drawing.Size(130, 30);
             this.baseSizeEdit.TabIndex = 14;
             this.baseSizeEdit.Value = new decimal(new int[] {
             5,
@@ -242,7 +242,7 @@
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(12, 190);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(63, 19);
+            this.label5.Size = new System.Drawing.Size(78, 23);
             this.label5.TabIndex = 13;
             this.label5.Text = "Base size";
             // 
@@ -255,7 +255,7 @@
             0,
             0});
             this.targetAddrEdit.Name = "targetAddrEdit";
-            this.targetAddrEdit.Size = new System.Drawing.Size(130, 26);
+            this.targetAddrEdit.Size = new System.Drawing.Size(130, 30);
             this.targetAddrEdit.TabIndex = 16;
             // 
             // label6
@@ -263,7 +263,7 @@
             this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(250, 267);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(97, 19);
+            this.label6.Size = new System.Drawing.Size(120, 23);
             this.label6.TabIndex = 15;
             this.label6.Text = "Target address";
             // 
@@ -281,7 +281,7 @@
             0,
             0});
             this.rERrThresholdEdit.Name = "rERrThresholdEdit";
-            this.rERrThresholdEdit.Size = new System.Drawing.Size(130, 26);
+            this.rERrThresholdEdit.Size = new System.Drawing.Size(130, 30);
             this.rERrThresholdEdit.TabIndex = 18;
             this.rERrThresholdEdit.Value = new decimal(new int[] {
             25,
@@ -294,13 +294,13 @@
             this.label7.AutoSize = true;
             this.label7.Location = new System.Drawing.Point(12, 267);
             this.label7.Name = "label7";
-            this.label7.Size = new System.Drawing.Size(160, 19);
+            this.label7.Size = new System.Drawing.Size(199, 23);
             this.label7.TabIndex = 17;
             this.label7.Text = "Radial error threshold, m";
             // 
             // SettingsEditor
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 19F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 23F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(483, 412);
             this.Controls.Add(this.rERrThresholdEdit);

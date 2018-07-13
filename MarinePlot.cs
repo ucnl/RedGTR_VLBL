@@ -300,8 +300,8 @@ namespace RedGTR_VLBL
 
                         for (int i = 0; i < track.Value.Length; i++)
                         {
-                            xToDraw = -track.Value[i].X * scale;
-                            yToDraw = track.Value[i].Y * scale;
+                            yToDraw = track.Value[i].X * scale;
+                            xToDraw = -track.Value[i].Y * scale;
 
                             if ((i == 0) && (latestPointMarks[track.Key]))
                             {

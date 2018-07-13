@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 using UCNLDrivers;
 using UCNLKML;
@@ -65,8 +66,10 @@ namespace RedGTR_VLBL
         AgingDouble tLatitude;
         AgingDouble tLongitude;
         AgingDouble tRadialError;
+        
 
         List<GeoPoint3DWE> tLocation;
+        GeoPoint3DWE tBestLocation;
         List<GeoPoint> bLocation;        
 
         delegate T NullChecker<T>(object parameter);
@@ -214,13 +217,18 @@ namespace RedGTR_VLBL
             tLocation = new List<GeoPoint3DWE>();
             bLocation = new List<GeoPoint>();
 
+            tBestLocation = new GeoPoint3DWE();
+            tBestLocation.Latitude = double.NaN;
+            tBestLocation.Longitude = double.NaN;
+            tBestLocation.RadialError = double.NaN;
+
             marinePlot.InitTracks(settingsProvider.Data.MeasurementsFIFOSize);
             marinePlot.AddTrack("BOAT GNSS", Color.Blue, 2.0f, 2, settingsProvider.Data.MeasurementsFIFOSize, true);
             marinePlot.AddTrack("BASE", Color.Salmon, 2.0f, 8, settingsProvider.Data.BaseSize, false);            
             marinePlot.AddTrack("MEASUREMENTS", Color.Green, 2.0f, 4, settingsProvider.Data.MeasurementsFIFOSize, false);
-            marinePlot.AddTrack("TARGET", Color.Red, 2.0f, 4, settingsProvider.Data.MeasurementsFIFOSize, true);
+            marinePlot.AddTrack("TARGET", Color.Black, 2.0f, 4, settingsProvider.Data.MeasurementsFIFOSize, false);
+            marinePlot.AddTrack("BEST", Color.Red, 2.0f, 8, 1, false);
             
-
             #endregion                                    
         }
 
@@ -349,17 +357,16 @@ namespace RedGTR_VLBL
                 {
                     measurements.Add(new Measurement(bLatitude.Value, bLongitude.Value, dst, snrd, dpt));
 
-                    if (measurements.IsBaseExists && tDepth.IsInitialized)
+                    InvokeUpdateTrack("MEASUREMENTS", bLatitude.Value, bLongitude.Value);
+
+                    if (measurements.IsBaseExists && tDepth.IsInitialized && (measurements.AngleRange > 270))                        
                     {
                         GeoPoint3DWE prevLocation = new GeoPoint3DWE();
                         prevLocation.Latitude = double.NaN;
                         prevLocation.Longitude = double.NaN;
                         prevLocation.Depth = tDepth.Value;
-                        prevLocation.RadialError = double.NaN;
-
-                        if (tLocation.Count > 0)
-                            prevLocation = tLocation[tLocation.Count - 1];
-
+                        prevLocation.RadialError = double.NaN;                     
+                       
                         double stStageRErr = 0.0;
                         int itCnt = 0;
 
@@ -370,49 +377,33 @@ namespace RedGTR_VLBL
                             basePnts.Add(new PointF(Convert.ToSingle(bPoint.Latitude), Convert.ToSingle(bPoint.Longitude)));
                         }
 
+                        InvokeUpdateTrack("BASE", basePnts.ToArray());
+
                         var locResult = Navigation.LocateLBL_NLM(basePoints, prevLocation, settingsProvider.Data.RadialErrorThreshold, out stStageRErr, out itCnt);
-
-                        if (locResult.RadialError < settingsProvider.Data.RadialErrorThreshold)
-                            measurements.UpdateReferencePoint(locResult.Latitude, locResult.Longitude);
-
+                        
                         tLatitude.Value = locResult.Latitude;
                         tLongitude.Value = locResult.Longitude;
-                        tRadialError.Value = locResult.RadialError;
-
+                        tRadialError.Value = locResult.RadialError;                        
                         tLocation.Add(locResult);
+
+                        InvokeUpdateTrack("TARGET", locResult.Latitude, locResult.Longitude);
 
                         if (settingsProvider.Data.IsGNSSEmulator)
                         {
                             SendEMU(locResult.Latitude, locResult.Longitude, tDepth.Value, locResult.RadialError);
                         }
 
-                        if (marinePlot.InvokeRequired)
-                            marinePlot.Invoke((MethodInvoker)delegate
-                            {
-                                marinePlot.UpdateTrack("BASE", basePnts.ToArray());
-                                marinePlot.UpdateTrack("TARGET", locResult.Latitude, locResult.Longitude);
-                                marinePlot.UpdateTrack("MEASUREMENTS", bLatitude.Value, bLongitude.Value);
-                            });
-                        else
+                        if ((double.IsNaN(tBestLocation.Latitude) || (tBestLocation.RadialError > locResult.RadialError)))                                      
                         {
-                            marinePlot.UpdateTrack("BASE", basePnts.ToArray());
-                            marinePlot.UpdateTrack("TARGET", locResult.Latitude, locResult.Longitude);
-                            marinePlot.UpdateTrack("MEASUREMENTS", bLatitude.Value, bLongitude.Value);
-                        }
+                            tBestLocation.Latitude = locResult.Latitude;
+                            tBestLocation.Longitude = locResult.Longitude;
+                            tBestLocation.RadialError = locResult.RadialError;
+                            measurements.UpdateReferencePoint(tBestLocation.Latitude, tBestLocation.Longitude);
 
-                        if (mainToolStrip.InvokeRequired)
-                        {
-                            mainToolStrip.Invoke((MethodInvoker)delegate
-                            {
-                                if (!tracksBtn.Enabled)
-                                    tracksBtn.Enabled = true;
-                            });
-                        }
-                        else
-                        {
-                            if (!tracksBtn.Enabled)
-                                tracksBtn.Enabled = true;
-                        }
+                            InvokeUpdateTrack("BEST", tBestLocation.Latitude, tBestLocation.Longitude);
+                        }                                                                     
+
+                        InvokeSetEnabled(mainToolStrip, tracksBtn, true);
                     }
                     else
                     {
@@ -423,6 +414,8 @@ namespace RedGTR_VLBL
                     }
                 }
 
+
+
                 if (tLatitude.IsInitialized && !tLatitude.IsObsolete &&
                     tLongitude.IsInitialized && !tLongitude.IsObsolete)
                 {
@@ -432,25 +425,14 @@ namespace RedGTR_VLBL
                 if (tRadialError.IsInitialized && !tRadialError.IsObsolete)
                     sb.AppendFormat(CultureInfo.InvariantCulture, "RER: {0}\r\n", tRadialError.ToString());
 
-                if (marinePlot.InvokeRequired)                
-                    marinePlot.Invoke((MethodInvoker)delegate 
-                    { 
-                        marinePlot.LeftUpperCornerText = sb.ToString(); 
-                        marinePlot.Invalidate(); 
-                    });                    
-                else
-                {
-                    marinePlot.LeftUpperCornerText = sb.ToString();
-                    marinePlot.Invalidate();
-                }
+                if (!double.IsNaN(tBestLocation.RadialError))
+                    sb.AppendFormat(CultureInfo.InvariantCulture, "BRE: {0:F03}\r\n", tBestLocation.RadialError);
+
+                InvokeSetLeftUpperCornerText(sb.ToString());
+                InvokeInvalidatePlot();
 
                 if (isAutosnapshot)
-                {
-                    if (this.InvokeRequired)
-                        this.Invoke((MethodInvoker)delegate { SaveFullSnapshot(); });
-                    else
-                        SaveFullSnapshot();
-                }
+                    InvokeSaveSnapShot();
 
             }
             catch (Exception ex)
@@ -503,38 +485,73 @@ namespace RedGTR_VLBL
 
                 bLocation.Add(newPoint);
 
-                if (marinePlot.InvokeRequired)
-                    marinePlot.Invoke((MethodInvoker)delegate
-                    {
-                        marinePlot.UpdateTrack("BOAT GNSS", latitude, longitude);
-                        marinePlot.Invalidate();
-                    });
-                else
-                {
-                    marinePlot.UpdateTrack("BOAT GNSS", latitude, longitude);
-                    marinePlot.Invalidate();
-                }
+                InvokeUpdateTrack("BOAT GNSS", latitude, longitude);
+                InvokeInvalidatePlot();
 
-                if (mainToolStrip.InvokeRequired)
-                {
-                    mainToolStrip.Invoke((MethodInvoker)delegate
-                    {
-                        if (!tracksBtn.Enabled)
-                            tracksBtn.Enabled = true;
-                    });
-                }
-                else
-                {
-                    if (!tracksBtn.Enabled)
-                        tracksBtn.Enabled = true;
-                }
+                InvokeSetEnabled(mainToolStrip, tracksBtn, true);
             }
-
         }
 
         #endregion
 
         #region Misc
+
+        private void InvokeSetEnabled(ToolStrip strip, ToolStripItem item, bool enabled)
+        {
+            if (strip.InvokeRequired)
+                strip.Invoke((MethodInvoker)delegate
+                {
+                    if (item.Enabled != enabled)
+                        item.Enabled = enabled;
+                });
+            else
+            {
+                if (item.Enabled != enabled)
+                    item.Enabled = enabled;
+            }
+        }
+
+        private void InvokeInvalidatePlot()
+        {
+            if (marinePlot.InvokeRequired)
+                marinePlot.Invoke((MethodInvoker)delegate { marinePlot.Invalidate(); });
+            else
+                marinePlot.Invalidate();
+        }
+
+        private void InvokeSetLeftUpperCornerText(string text)
+        {
+            if (marinePlot.InvokeRequired)
+                marinePlot.Invoke((MethodInvoker)delegate { marinePlot.LeftUpperCornerText = text; });
+            else
+                marinePlot.LeftUpperCornerText = text;
+        }
+
+        private void InvokeUpdateTrack(string trackID, double lat, double lon)
+        {
+            if (marinePlot.InvokeRequired)
+                marinePlot.Invoke((MethodInvoker)delegate { marinePlot.UpdateTrack(trackID, lat, lon); });
+            else
+                marinePlot.UpdateTrack(trackID, lat, lon);
+        }
+
+        private void InvokeUpdateTrack(string trackID, PointF[] pnts)
+        {
+            if (marinePlot.InvokeRequired)
+                marinePlot.Invoke((MethodInvoker)delegate { marinePlot.UpdateTrack(trackID, pnts); });
+            else
+                marinePlot.UpdateTrack(trackID, pnts);
+        }
+
+        private void InvokeSaveSnapShot()
+        {
+            if (this.InvokeRequired)
+                this.Invoke((MethodInvoker)delegate { SaveFullSnapshot(); });
+            else
+                SaveFullSnapshot();
+        }
+
+
 
         private void ProcessException(Exception ex, bool isMsgBox)
         {
@@ -661,10 +678,12 @@ namespace RedGTR_VLBL
             data.Add(new KMLPlacemark("MEASUREMENT POINTS", "Measurements points", msmsKmlTrack.ToArray()));
 
             var targetKmlTrack = new List<KMLLocation>();
-            foreach (var trackItem in bLocation)
+            foreach (var trackItem in tLocation)
                 targetKmlTrack.Add(new KMLLocation(trackItem.Longitude, trackItem.Latitude, tDepth.Value));
 
-            data.Add(new KMLPlacemark("TARGET", "Target track", gnssKmlTrack.ToArray()));
+            data.Add(new KMLPlacemark("TARGET", "Target track", targetKmlTrack.ToArray()));
+
+            data.Add(new KMLPlacemark("BEST", "Location with minimal radial error", true, true, new KMLLocation(tBestLocation.Longitude, tBestLocation.Latitude, tDepth.Value)));
 
 
             try
@@ -679,6 +698,24 @@ namespace RedGTR_VLBL
             #endregion
         }
 
+        private void AnalyzeLog(string[] lines)
+        {
+            foreach (var line in lines)
+            {
+                if (line.Contains(">> $"))
+                {
+                    var nmsg = line.Substring(line.IndexOf(">>") + 3).Trim();
+                    if (!nmsg.EndsWith("\r\n"))
+                        nmsg = nmsg + "\r\n";
+
+
+                    gtrPort_NewNMEAMessage(gtrPort, new NewNMEAMessageEventArgs(nmsg));
+
+                    //Thread.Sleep(200);
+                }
+            }
+
+        }
 
         #endregion
 
@@ -843,6 +880,36 @@ namespace RedGTR_VLBL
                 marinePlot.Invalidate();
 
                 tracksBtn.Enabled = false;
+            }
+        }
+
+        private void analyzeBtn_Click(object sender, EventArgs e)
+        {
+            using (OpenFileDialog oDialog = new OpenFileDialog())
+            {
+                oDialog.Title = "Select a log file to analyze...";
+                oDialog.DefaultExt = "log";
+                oDialog.Filter = "Log files (*.log)|*.log";
+                oDialog.InitialDirectory = logPath;
+
+                if (oDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    bool isLoaded = false;
+                    string[] logLines = null;
+
+                    try
+                    {
+                        logLines = File.ReadAllLines(oDialog.FileName);
+                        isLoaded = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        ProcessException(ex, true);
+                    }
+
+                    if (isLoaded)
+                        AnalyzeLog(logLines);
+                }
             }
         }
 
@@ -1121,7 +1188,7 @@ namespace RedGTR_VLBL
             //}            
         }
 
-        #endregion                                
+        #endregion                                        
         
         #endregion                
     }

@@ -61,6 +61,15 @@ namespace RedGTR_VLBL
             }
         }
 
+        double angleRange = 0.0;
+        public double AngleRange
+        {
+            get
+            {
+                return angleRange;
+            }
+        }
+
 
         List<Measurement> byAzimuth;
         List<Measurement> byTimeStamp;
@@ -204,7 +213,13 @@ namespace RedGTR_VLBL
 
             }
 
-            Resort();            
+            Resort();
+
+            double rs = 0;
+            double re = 0;
+            double r = 0;
+            double maxGap = MeasureAngularGap(out rs, out re, out r);
+            angleRange = 360 - maxGap;
         }
                   
         private double Variance(double[] items)
@@ -230,16 +245,8 @@ namespace RedGTR_VLBL
             return Math.Sqrt(variance);
         }
 
-       
-        public List<Measurement> GetBase()
+        private double MeasureAngularGap(out double rangeStart, out double rangeEnd, out double range)
         {
-            if (!IsBaseExists)
-                throw new InvalidOperationException("Base does not exists");
-
-            List<Measurement> result = new List<Measurement>();
-            
-            #region find max gap
-
             int maxGapStartIdx = 0;
             int maxGapEndIdx = 1;
             double maxGap = byAzimuth[maxGapEndIdx].Alpha - byAzimuth[maxGapStartIdx].Alpha;
@@ -253,7 +260,7 @@ namespace RedGTR_VLBL
                 rIdx = idx;
 
                 if (rIdx >= byAzimuth.Count)
-                    rIdx = rIdx % byAzimuth.Count;                
+                    rIdx = rIdx % byAzimuth.Count;
 
                 gap = byAzimuth[rIdx].Alpha - byAzimuth[lIdx].Alpha;
 
@@ -270,16 +277,34 @@ namespace RedGTR_VLBL
                 idx = idx + 1;
             }
 
+            rangeStart = byAzimuth[maxGapEndIdx].Alpha;
+            rangeEnd = byAzimuth[maxGapStartIdx].Alpha;
+            range = rangeEnd - rangeStart;
+
+            if (range < 0)
+                range = range + 360;    
+
+            return maxGap;
+        }
+       
+        public List<Measurement> GetBase()
+        {
+            if (!IsBaseExists)
+                throw new InvalidOperationException("Base does not exists");
+
+            List<Measurement> result = new List<Measurement>();
+            
+            #region find max gap
+
+            double aRangeStart = 0;
+            double aRangeEnd = 0;
+            double aRange = 0;
+            double maxGap = MeasureAngularGap(out aRangeStart, out aRangeEnd, out aRange);
+            angleRange = 360 - maxGap;
+
             #endregion
 
             #region arrange desired angles
-
-            double aRangeStart = byAzimuth[maxGapEndIdx].Alpha;
-            double aRangeEnd = byAzimuth[maxGapStartIdx].Alpha;
-            double aRange = aRangeEnd - aRangeStart;
-            
-            if (aRange < 0)
-                aRange = aRange + 360;    
             
             double delta = aRange / (BaseSize - 1);
 
@@ -288,7 +313,6 @@ namespace RedGTR_VLBL
                 double deltaDec = (delta - maxGap) * (BaseSize - 1) / (BaseSize - 2); 
                 delta = delta - deltaDec / BaseSize;
             }
-
             
             double[] desiredAngles = new double[BaseSize];
 

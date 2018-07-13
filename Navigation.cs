@@ -195,26 +195,38 @@ namespace RedGTR_VLBL
         }
 
 
-        public static double LocateLBL_1D(double z, double[] bx, double[] by, double[] bz, double[] bd, double aStart, double aEnd, double aStep)
+        public static double LocateLBL_1D(double z, double[] bx, double[] by, double[] bz, double[] bd, double aStart, double aEnd, double aStep, out double xB, out double yB)
         {
             double alpha = aStart;
             double alphaBest = aStart;
             double eps;
             double minEps = double.MaxValue;
 
-            double x, y;          
+            double x, y;
 
+            xB = bx[0];
+            yB = by[0];
+
+            double nearestDstProjection = bd[0];
+            double dz = Math.Abs(bz[0] - z);
+            if (bd[0] < dz)
+                nearestDstProjection = 0;
+            else
+                nearestDstProjection = Math.Sqrt(bd[0] * bd[0] - dz * dz);
+            
             while (alpha < aEnd)
             {
-                x = bx[0] + bd[0] * Math.Cos(alpha * PI_DBY_180);
-                y = by[0] + bd[0] * Math.Sin(alpha * PI_DBY_180);
+                x = bx[0] + nearestDstProjection * Math.Cos(alpha * PI_DBY_180); //!!!
+                y = by[0] + nearestDstProjection * Math.Sin(alpha * PI_DBY_180); //
 
                 eps = EpsTOA(x, y, z, bx, by, bz, bd);
 
                 if (eps < minEps)
                 {
                     minEps = eps;
-                    alphaBest = alpha;                   
+                    alphaBest = alpha;
+                    xB = x;
+                    yB = y;
                 }
 
                 alpha += aStep;
@@ -279,14 +291,11 @@ namespace RedGTR_VLBL
             {
                 #region 1st stage 1D optimization
 
-                double alpha = LocateLBL_1D(z, bx, by, bz, bd, 0, 360, 10);
-                alpha = LocateLBL_1D(z, bx, by, bz, bd, alpha - 10, alpha + 10, 1);
-
-                xBest = bx[0] + bd[0] * Math.Cos(alpha * PI_DBY_180);
-                yBest = by[0] + bd[0] * Math.Sin(alpha * PI_DBY_180);
-
+                double alpha = LocateLBL_1D(z, bx, by, bz, bd, 0, 360, 10, out xBest, out yBest);
+                alpha = LocateLBL_1D(z, bx, by, bz, bd, alpha - 10, alpha + 10, 1, out xBest, out yBest);
+                
                 stStageRErr = Math.Sqrt(EpsTOA(xBest, yBest, z, bx, by, bz, bd));
-                simplexSize = stStageRErr;
+                simplexSize = stStageRErr;// *stStageRErr;
 
                 #endregion
             }
@@ -298,67 +307,67 @@ namespace RedGTR_VLBL
             #region Nelder-Mead 2D optimization
 
             bool isFinished = false;
-	        int itCnt = 0;
-	        double tmp, tmp1;
-	        double[] xix = new double[3];
-	        double[] xiy = new double[3];
+            int itCnt = 0;
+            double tmp, tmp1;
+            double[] xix = new double[3];
+            double[] xiy = new double[3];
             double[] fxi = new double[3];
-	        double fl, fg, fh, fr, fe, fs;
-	        double xcx, xcy, xrx, xry, xex, xey, xsx, xsy;
+            double fl, fg, fh, fr, fe, fs;
+            double xcx, xcy, xrx, xry, xex, xey, xsx, xsy;
 
             xix[0] = xBest;
             xiy[0] = yBest;
             xix[1] = xix[0] + simplexSize; //
             xiy[1] = xiy[0] + simplexSize; //
-            xix[2] = xix[0] - simplexSize; //
-            xiy[2] = xiy[0] + simplexSize; //
-            
+            xix[2] = xix[0] - simplexSize / 2; //
+            xiy[2] = xiy[0] + simplexSize / 2; //
+
             while ((!isFinished) && (itCnt < NAV_NLM_MIT))
             {
                 fxi[0] = EpsTOA(xix[0], xiy[0], z, bx, by, bz, bd);
                 fxi[1] = EpsTOA(xix[1], xiy[1], z, bx, by, bz, bd);
                 fxi[2] = EpsTOA(xix[2], xiy[2], z, bx, by, bz, bd);
-                
+
                 if (fxi[0] > fxi[1])
                 {
                     tmp = fxi[0]; fxi[0] = fxi[1]; fxi[1] = tmp;
                     tmp = xix[0]; xix[0] = xix[1]; xix[1] = tmp;
                     tmp = xiy[0]; xiy[0] = xiy[1]; xiy[1] = tmp;
                 }
-                
+
                 if (fxi[0] > fxi[2])
                 {
                     tmp = fxi[0]; fxi[0] = fxi[2]; fxi[2] = tmp;
                     tmp = xix[0]; xix[0] = xix[2]; xix[2] = tmp;
                     tmp = xiy[0]; xiy[0] = xiy[2]; xiy[2] = tmp;
                 }
-                
+
                 if (fxi[1] > fxi[2])
                 {
                     tmp = fxi[1]; fxi[1] = fxi[2]; fxi[2] = tmp;
-		            tmp = xix[1]; xix[1] = xix[2]; xix[2] = tmp;
-		            tmp = xiy[1]; xiy[1] = xiy[2]; xiy[2] = tmp;
-		        }
-                
-                fl = fxi[0];		
+                    tmp = xix[1]; xix[1] = xix[2]; xix[2] = tmp;
+                    tmp = xiy[1]; xiy[1] = xiy[2]; xiy[2] = tmp;
+                }
+
+                fl = fxi[0];
                 fg = fxi[1];
                 fh = fxi[2];
-                
+
                 xcx = (xix[0] + xix[1]) / 2.0f;
                 xcy = (xiy[0] + xiy[1]) / 2.0f;
-                
+
                 xrx = (1.0f + NAV_NLM_A) * xcx - NAV_NLM_A * xix[2];
                 xry = (1.0f + NAV_NLM_A) * xcy - NAV_NLM_A * xiy[2];
 
                 fr = EpsTOA(xrx, xry, z, bx, by, bz, bd);
-                
+
                 if (fr < fl)
                 {
                     xex = (1.0f - NAV_NLM_G) * xcx + NAV_NLM_G * xrx;
                     xey = (1.0f - NAV_NLM_G) * xcy + NAV_NLM_G * xry;
 
                     fe = EpsTOA(xex, xey, z, bx, by, bz, bd);
-                    
+
                     if (fe < fr)
                     {
                         xix[2] = xex;
@@ -366,69 +375,69 @@ namespace RedGTR_VLBL
                     }
                     else
                     {
-				        xix[2] = xrx;
-				        xiy[2] = xry;
-			        }
-		        }
-		        else
-		        {
-			        if ((fr > fl) && (fr < fg))
-			        {
-				        xix[2] = xrx;
-				        xiy[2] = xry;
-			        }
-			        else
-			        {
-				        if ((fr > fg) && (fr < fh))
-				        {
-					        tmp = xix[2]; xix[2] = xrx; xrx = tmp;
-					        tmp = xiy[2]; xiy[2] = xry; xry = tmp;
-					        tmp = fxi[2]; fxi[2] = fr;  fr = tmp;
-				        }
-				        else
-				        {
-					        if (fh < fr)
-					        {
-						        //
-					        }
-				        }
+                        xix[2] = xrx;
+                        xiy[2] = xry;
+                    }
+                }
+                else
+                {
+                    if ((fr > fl) && (fr < fg))
+                    {
+                        xix[2] = xrx;
+                        xiy[2] = xry;
+                    }
+                    else
+                    {
+                        if ((fr > fg) && (fr < fh))
+                        {
+                            tmp = xix[2]; xix[2] = xrx; xrx = tmp;
+                            tmp = xiy[2]; xiy[2] = xry; xry = tmp;
+                            tmp = fxi[2]; fxi[2] = fr; fr = tmp;
+                        }
+                        else
+                        {
+                            if (fh < fr)
+                            {
+                                //
+                            }
+                        }
 
-				        xsx = NAV_NLM_B * xix[2] + (1.0f - NAV_NLM_B) * xcx;
-				        xsy = NAV_NLM_B * xiy[2] + (1.0f - NAV_NLM_B) * xcy;
+                        xsx = NAV_NLM_B * xix[2] + (1.0f - NAV_NLM_B) * xcx;
+                        xsy = NAV_NLM_B * xiy[2] + (1.0f - NAV_NLM_B) * xcy;
                         fs = EpsTOA(xsx, xsy, z, bx, by, bz, bd);
 
-				        if (fs < fh)
-				        {
-					        xix[2] = xsx;
-					        xiy[2] = xsy;
-				        }
-				        else
-				        {
-					        xix[1] = (xix[1] - xix[0]) / 2.0f;
-					        xiy[1] = (xiy[1] - xiy[0]) / 2.0f;
-					        xix[2] = (xix[2] - xix[0]) / 2.0f;
-					        xiy[2] = (xiy[2] - xiy[0]) / 2.0f;
-				        }
-			        }
-		        }                
+                        if (fs < fh)
+                        {
+                            xix[2] = xsx;
+                            xiy[2] = xsy;
+                        }
+                        else
+                        {
+                            xix[1] = (xix[1] - xix[0]) / 2.0f;
+                            xiy[1] = (xiy[1] - xiy[0]) / 2.0f;
+                            xix[2] = (xix[2] - xix[0]) / 2.0f;
+                            xiy[2] = (xiy[2] - xiy[0]) / 2.0f;
+                        }
+                    }
+                }
 
-		        tmp = (fxi[0] + fxi[1] + fxi[2]) / 3.0f;
-		        tmp1 = ((fxi[0] - tmp) * (fxi[0] - tmp) +
-			            (fxi[1] - tmp) * (fxi[1] - tmp) +
-			            (fxi[2] - tmp) * (fxi[2] - tmp)) / 3.0f;
+                tmp = (fxi[0] + fxi[1] + fxi[2]) / 3.0f;
+                tmp1 = ((fxi[0] - tmp) * (fxi[0] - tmp) +
+                        (fxi[1] - tmp) * (fxi[1] - tmp) +
+                        (fxi[2] - tmp) * (fxi[2] - tmp)) / 3.0f;
 
-		        isFinished = (Math.Sqrt(tmp1) <= NAV_NLM_EPSILON);
-		        itCnt++;
-	        }
+                isFinished = (Math.Sqrt(tmp1) <= NAV_NLM_EPSILON);
+                itCnt++;
+            }
 
-	        xBest = xix[0];
-	        yBest = xiy[0];
+            xBest = xix[0];
+            yBest = xiy[0];
 
 
             radialError = Math.Sqrt(EpsTOA(xix[0], xiy[0], z, bx, by, bz, bd));
             nlm_itCount = itCnt;
             
-            #endregion
+            #endregion           
 
             #region convert coordinates to degrees
             
